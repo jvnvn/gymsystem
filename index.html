@@ -6726,7 +6726,7 @@ async function loadHomeScreen(data) {
    const _m2 = (typeof getWorkoutMedia!=='undefined')?getWorkoutMedia(ex.name):null;
    const _e2 = s=>(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
    const _vEl = _m2&&_m2.thumbnail
-    ? `<img class="exrow-vid-thumb" src="${_m2.thumbnail}" onclick="openWorkoutVidModal('${_e2(ex.name)}')" alt="">`
+    ? `<img class="exrow-vid-thumb" src="${_m2.thumbnail}" onclick="openWorkoutVidModal('${_e2(ex.name)}')" onerror="handleThumbError(this)" alt="">`
     : `<div class="exrow-vid-btn" onclick="openWorkoutVidModal('${_e2(ex.name)}')">&#x25B6;</div>`;
    return `<div class="exercise-row-preview" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
     ${_vEl}
@@ -9380,12 +9380,26 @@ function _normalizeExName(name) {
 }
 
 /**
+ * Swap a broken/expired video-thumbnail <img> to the play-button fallback
+ * instead of leaving a blank/dark box when the Cloudinary asset fails to load.
+ * Preserves the original onclick handler so the video modal still opens.
+ */
+function handleThumbError(imgEl) {
+  if (!imgEl || imgEl.dataset.thumbFallbackApplied) return;
+  imgEl.dataset.thumbFallbackApplied = '1';
+  const btn = document.createElement('div');
+  btn.className = imgEl.className.replace('vid-thumb', 'vid-btn');
+  btn.innerHTML = '&#x25B6;';
+  btn.onclick = imgEl.onclick;
+  imgEl.replaceWith(btn);
+}
+
+/**
  * Return { video, thumbnail } for an exercise name, or null.
  * 1. Exact normalised match
  * 2. Partial: db key contains the name OR name contains the db key
  */
-function getWorkoutMedia(exerciseName) {
- const key = _normalizeExName(exerciseName);
+function getWorkoutMedia(exerciseName) { const key = _normalizeExName(exerciseName);
  if (!key) return null;
 
  // 1. Exact match
